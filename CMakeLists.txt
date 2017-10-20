@@ -24,7 +24,7 @@ add_definitions(
 -Wshadow
 )
 
-find_package(Boost 1.65 REQUIRED)
+find_package(Boost 1.65 REQUIRED system)
 
 add_executable(sketch
 	src/sketch.cpp
