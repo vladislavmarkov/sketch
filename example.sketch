@@ -1,4 +1,5 @@
 /* comment */
 window = "screen select":
     width = 50%
-    height = 50%centered
+    height = 50%
+    position = centered, 10%
