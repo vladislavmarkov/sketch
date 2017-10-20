@@ -106,27 +106,33 @@ public:
         std::cout << boost::format("window \"%s\"\n") % title;
         std::string width_str = "unspecified";
         if (width) {
-            if (std::holds_alternative<ast::percent_t>(*width)) {
+            if (std::holds_alternative<bool>(*width)) {
+                width_str = "screen-wide";
+            } else if (std::holds_alternative<ast::percent_t>(*width)) {
                 const auto width_percent = std::get<ast::percent_t>(*width);
                 width_str                = std::to_string(
                                 static_cast<std::size_t>(width_percent * 100)) +
                             "%";
             } else {
-                width_str = std::to_string(std::get<ast::pixels_t>(*width));
+                width_str =
+                    std::to_string(std::get<ast::pixels_t>(*width)) + "px";
             }
         }
         std::cout << "\twidth = " << width_str << "\n";
 
         std::string height_str = "unspecified";
         if (height) {
-            if (std::holds_alternative<ast::percent_t>(*height)) {
+            if (std::holds_alternative<bool>(*height)) {
+                height_str = "screen-high";
+            } else if (std::holds_alternative<ast::percent_t>(*height)) {
                 const auto height_percent = std::get<ast::percent_t>(*height);
                 height_str =
                     std::to_string(
                         static_cast<std::size_t>(height_percent * 100)) +
                     "%";
             } else {
-                height_str = std::to_string(std::get<ast::pixels_t>(*height));
+                height_str =
+                    std::to_string(std::get<ast::pixels_t>(*height)) + "px";
             }
         }
         std::cout << "\theight = " << height_str << "\n";
@@ -154,7 +160,8 @@ public:
                             "%";
                     } else {
                         position_str +=
-                            std::to_string(std::get<ast::pixels_t>(pos.first));
+                            std::to_string(std::get<ast::pixels_t>(pos.first)) +
+                            "px";
                     }
 
                     position_str += ", ";
@@ -171,7 +178,9 @@ public:
                             "%";
                     } else {
                         position_str +=
-                            std::to_string(std::get<ast::pixels_t>(pos.second));
+                            std::to_string(
+                                std::get<ast::pixels_t>(pos.second)) +
+                            "px";
                     }
 
                     position_str += " }";
@@ -226,23 +235,33 @@ const auto percent = x3::rule<struct percent, ast::percent_t>{"percent"};
 const auto percent_def =
     (x3::uint_[([](auto& ctx) {
          x3::_val(ctx) = static_cast<ast::percent_t>(x3::_attr(ctx)) / 100.0;
-     })] > '%');
+     })] >>
+     '%');
 
-const auto pixels = x3::rule<struct pixels, ast::pixels_t>{"pixels"};
-const auto
-    pixels_def = x3::uint_[([](auto& ctx) {
-                     x3::_val(ctx) = static_cast<ast::pixels_t>(x3::_attr(ctx));
-                 })] > x3::lit("px");
+const auto pixels     = x3::rule<struct pixels, ast::pixels_t>{"pixels"};
+const auto pixels_def = x3::uint_[([](auto& ctx) {
+                            x3::_val(ctx) =
+                                static_cast<ast::pixels_t>(x3::_attr(ctx));
+                        })] >>
+                        "px";
+
+const auto full = x3::rule<struct full, bool>{"full"};
+const auto full_def =
+    x3::lit("full")[([](auto& ctx) { x3::_val(ctx) = true; })];
 
 const auto width = x3::rule<struct width, ast::width_t>{"width"};
-const auto width_def =
-    x3::lit("width") > '=' >
-    percent[([](auto& ctx) { x3::_val(ctx) = x3::_attr(ctx); })];
+const auto
+    width_def = x3::lit("width") > '=' >
+                (percent[([](auto& ctx) { x3::_val(ctx) = x3::_attr(ctx); })] |
+                 pixels[([](auto& ctx) { x3::_val(ctx) = x3::_attr(ctx); })] |
+                 full[([](auto& ctx) { x3::_val(ctx) = x3::_attr(ctx); })]);
 
 const auto height = x3::rule<struct height, ast::height_t>{"height"};
-const auto height_def =
-    x3::lit("height") > '=' >
-    percent[([](auto& ctx) { x3::_val(ctx) = x3::_attr(ctx); })];
+const auto
+    height_def = x3::lit("height") > '=' >
+                 (percent[([](auto& ctx) { x3::_val(ctx) = x3::_attr(ctx); })] |
+                  pixels[([](auto& ctx) { x3::_val(ctx) = x3::_attr(ctx); })] |
+                  full[([](auto& ctx) { x3::_val(ctx) = x3::_attr(ctx); })]);
 
 const auto horizontal =
     x3::rule<struct horizontal, ast::horizontal_t>{"horizontal"};
@@ -281,28 +300,29 @@ const auto window = x3::rule<struct window_class, window_ast>{"window"};
 const auto window_def =
     x3::lit("window") > '=' >
     title[([](auto& ctx) { x3::_val(ctx).set_title(x3::_attr(ctx)); })] > ':' >
-    +attribute[([](auto& ctx) {
-        if (std::get<0>(x3::_attr(ctx))) {
-            if (!x3::_val(ctx).set_width(std::get<0>(x3::_attr(ctx)))) {
-                x3::_pass(ctx) = false;
-            };
-        }
-        if (std::get<1>(x3::_attr(ctx))) {
-            if (!x3::_val(ctx).set_height(std::get<1>(x3::_attr(ctx)))) {
-                x3::_pass(ctx) = false;
-            }
-        }
-        if (std::get<2>(x3::_attr(ctx))) {
-            if (!x3::_val(ctx).set_position(std::get<2>(x3::_attr(ctx)))) {
-                x3::_pass(ctx) = false;
-            }
-        }
-    })];
+    +(attribute[([](auto& ctx) {
+          if (std::get<0>(x3::_attr(ctx))) {
+              if (!x3::_val(ctx).set_width(std::get<0>(x3::_attr(ctx)))) {
+                  x3::_pass(ctx) = false;
+              };
+          }
+          if (std::get<1>(x3::_attr(ctx))) {
+              if (!x3::_val(ctx).set_height(std::get<1>(x3::_attr(ctx)))) {
+                  x3::_pass(ctx) = false;
+              }
+          }
+          if (std::get<2>(x3::_attr(ctx))) {
+              if (!x3::_val(ctx).set_position(std::get<2>(x3::_attr(ctx)))) {
+                  x3::_pass(ctx) = false;
+              }
+          }
+      })] > x3::no_skip[x3::eol | x3::eoi]);
 
 // window parsing rules
 BOOST_SPIRIT_DEFINE(
     attribute,
     centered,
+    full,
     height,
     horizontal,
     percent,
