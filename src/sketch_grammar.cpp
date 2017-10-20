@@ -224,6 +224,10 @@ struct error_handler_base {
 
 struct window_class;
 
+const auto skipper     = x3::rule<struct skipper>{"skipper"};
+const auto skipper_def = x3::space | "/*" >> *(x3::char_ - "*/") >> "*/" |
+                         "//" >> *(x3::char_ - x3::eol - x3::eoi);
+
 const auto title     = x3::rule<struct title, std::string>{"title"};
 const auto title_def = x3::lexeme['"' >> +(x3::char_ - '"') >> '"'];
 
@@ -299,8 +303,8 @@ const auto window = x3::rule<struct window_class, window_ast>{"window"};
 
 const auto window_def =
     x3::lit("window") > '=' >
-    title[([](auto& ctx) { x3::_val(ctx).set_title(x3::_attr(ctx)); })] > ':' >
-    +(attribute[([](auto& ctx) {
+    title[([](auto& ctx) { x3::_val(ctx).set_title(x3::_attr(ctx)); })] > ':' >>
+    +(x3::no_skip[x3::eol] >> attribute[([](auto& ctx) {
           if (std::get<0>(x3::_attr(ctx))) {
               if (!x3::_val(ctx).set_width(std::get<0>(x3::_attr(ctx)))) {
                   x3::_pass(ctx) = false;
@@ -316,7 +320,7 @@ const auto window_def =
                   x3::_pass(ctx) = false;
               }
           }
-      })] > x3::no_skip[x3::eol | x3::eoi]);
+      })]);
 
 // window parsing rules
 BOOST_SPIRIT_DEFINE(
@@ -329,6 +333,7 @@ BOOST_SPIRIT_DEFINE(
     pixels,
     point,
     position,
+    skipper,
     title,
     vertical,
     width,
@@ -346,12 +351,6 @@ struct window_class {
         return x3::error_handler_result::fail;
     }
 };
-
-const auto skipper     = x3::rule<struct skipper>{"skipper"};
-const auto skipper_def = x3::space | "/*" >> *(x3::char_ - "*/") >> "*/" |
-                         "//" >> *(x3::char_ - x3::eol - x3::eoi);
-
-BOOST_SPIRIT_DEFINE(skipper) // comments
 }
 
 void
