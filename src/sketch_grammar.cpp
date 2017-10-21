@@ -228,6 +228,9 @@ const auto skipper     = x3::rule<struct skipper>{"skipper"};
 const auto skipper_def = x3::space | "/*" >> *(x3::char_ - "*/") >> "*/" |
                          "//" >> *(x3::char_ - x3::eol - x3::eoi);
 
+const auto line_ending     = x3::rule<struct line_ending>{"line_ending"};
+const auto line_ending_def = x3::no_skip[x3::skip(skipper - x3::eol)[x3::eol]];
+
 const auto title     = x3::rule<struct title, std::string>{"title"};
 const auto title_def = x3::lexeme['"' >> +(x3::char_ - '"') >> '"'];
 
@@ -303,8 +306,8 @@ const auto window = x3::rule<struct window_class, window_ast>{"window"};
 
 const auto window_def =
     x3::lit("window") > '=' >
-    title[([](auto& ctx) { x3::_val(ctx).set_title(x3::_attr(ctx)); })] > ':' >>
-    +(x3::no_skip[x3::eol] >> attribute[([](auto& ctx) {
+    title[([](auto& ctx) { x3::_val(ctx).set_title(x3::_attr(ctx)); })] > ':' >
+    +(line_ending >> attribute[([](auto& ctx) {
           if (std::get<0>(x3::_attr(ctx))) {
               if (!x3::_val(ctx).set_width(std::get<0>(x3::_attr(ctx)))) {
                   x3::_pass(ctx) = false;
@@ -329,6 +332,7 @@ BOOST_SPIRIT_DEFINE(
     full,
     height,
     horizontal,
+    line_ending,
     percent,
     pixels,
     point,
