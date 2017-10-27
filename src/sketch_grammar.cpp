@@ -231,8 +231,22 @@ const auto skipper_def = x3::space | "/*" >> *(x3::char_ - "*/") >> "*/" |
 const auto line_ending     = x3::rule<struct line_ending>{"line_ending"};
 const auto line_ending_def = x3::no_skip[x3::skip(skipper - x3::eol)[x3::eol]];
 
+const auto single_quoted_string =
+    x3::rule<struct single_quoted_string, std::string>{"single_quoted_string"};
+const auto single_quoted_string_def =
+    x3::lexeme['\'' >> +(x3::char_ - '\'') >> '\''];
+
+const auto double_quoted_string =
+    x3::rule<struct double_quoted_string, std::string>{"double_quoted_string"};
+const auto double_quoted_string_def =
+    x3::lexeme['"' >> +(x3::char_ - '"') >> '"'];
+
+const auto quoted_string =
+    x3::rule<struct quoted_string, std::string>{"quoted_string"};
+const auto quoted_string_def = single_quoted_string | double_quoted_string;
+
 const auto title     = x3::rule<struct title, std::string>{"title"};
-const auto title_def = x3::lexeme['"' >> +(x3::char_ - '"') >> '"'];
+const auto title_def = quoted_string;
 
 const auto centered = x3::rule<struct centered, bool>{"centered"};
 const auto centered_def =
@@ -329,6 +343,7 @@ const auto window_def =
 BOOST_SPIRIT_DEFINE(
     attribute,
     centered,
+    double_quoted_string,
     full,
     height,
     horizontal,
@@ -337,6 +352,8 @@ BOOST_SPIRIT_DEFINE(
     pixels,
     point,
     position,
+    quoted_string,
+    single_quoted_string,
     skipper,
     title,
     vertical,
