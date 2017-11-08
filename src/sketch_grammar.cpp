@@ -12,8 +12,10 @@
 namespace sk {
 
 namespace ast {
-using percent_t = double;      // in 1/100ths
-using pixels_t  = std::size_t; // self-explanatory
+using percent_t    = double;              // in 1/100ths
+using pixels_t     = std::size_t;         // self-explanatory
+using fullscreen_t = std::optional<bool>; // if true, then window is
+                                          // fullscreened
 
 /* window width type can be unspecified or specified to be screen-wide, or
  * specified in percent or specified in pixels
@@ -48,20 +50,22 @@ namespace x3 = boost::spirit::x3;
 namespace {
 
 class window_ast {
-    std::string     title;
-    ast::width_t    width;
-    ast::height_t   height;
-    ast::position_t position;
+    std::string       _title;
+    ast::width_t      _width;
+    ast::height_t     _height;
+    ast::position_t   _position;
+    ast::fullscreen_t _fullscreen;
 
 public:
     bool
     set_title(const std::string& t)
     {
-        if (!title.empty()) {
-            std::cerr << "title is already set" << std::endl;
+        if (!_title.empty()) {
+            std::cerr << "title is already set\n";
             return false;
         }
-        title = t;
+
+        _title = t;
         return true;
     }
 
@@ -69,11 +73,17 @@ public:
     bool
     set_width(const Width& p)
     {
-        if (width) {
-            std::cerr << "width is already set" << std::endl;
+        if (_width) {
+            std::cerr << "width is already set\n";
             return false;
         }
-        width = p;
+
+        if (_fullscreen) {
+            std::cerr << "you can't set window width since it's fullscreen\n";
+            return false;
+        }
+
+        _width = p;
         return true;
     }
 
@@ -81,11 +91,17 @@ public:
     bool
     set_height(const Height& p)
     {
-        if (height) {
-            std::cerr << "height is already set" << std::endl;
+        if (_height) {
+            std::cerr << "height is already set\n";
             return false;
         }
-        height = p;
+
+        if (_fullscreen) {
+            std::cerr << "you can't set window height since it's fullscreen\n";
+            return false;
+        }
+
+        _height = p;
         return true;
     }
 
@@ -93,56 +109,87 @@ public:
     bool
     set_position(const Position& p)
     {
-        if (position) {
-            std::cerr << "position is already set" << std::endl;
+        if (_position) {
+            std::cerr << "position is already set\n";
             return false;
         }
-        position = p;
+
+        if (_fullscreen) {
+            std::cerr << "you can't set window position since it's "
+                         "fullscreen\n";
+            return false;
+        }
+
+        _position = p;
+        return true;
+    }
+
+    bool
+    set_fullscreen()
+    {
+        if (_fullscreen) {
+            std::cerr << "window is already set to fullscreen\n";
+            return false;
+        }
+
+        if (_width || _height || _position) {
+            std::cerr << "you can't set window to fullscreen as you already "
+                         "set width, height or position attribute\n";
+            return false;
+        }
+
+        _fullscreen = true;
         return true;
     }
 
     void
     print() try {
-        std::cout << boost::format("window \"%s\"\n") % title;
+        std::cout << "window \"" << _title << "\"\n";
+
+        if (_fullscreen) {
+            std::cout << "\tfullscreen\n";
+            return;
+        }
+
         std::string width_str = "unspecified";
-        if (width) {
-            if (std::holds_alternative<bool>(*width)) {
+        if (_width) {
+            if (std::holds_alternative<bool>(*_width)) {
                 width_str = "screen-wide";
-            } else if (std::holds_alternative<ast::percent_t>(*width)) {
-                const auto width_percent = std::get<ast::percent_t>(*width);
+            } else if (std::holds_alternative<ast::percent_t>(*_width)) {
+                const auto width_percent = std::get<ast::percent_t>(*_width);
                 width_str                = std::to_string(
                                 static_cast<std::size_t>(width_percent * 100)) +
                             "%";
             } else {
                 width_str =
-                    std::to_string(std::get<ast::pixels_t>(*width)) + "px";
+                    std::to_string(std::get<ast::pixels_t>(*_width)) + "px";
             }
         }
         std::cout << "\twidth = " << width_str << "\n";
 
         std::string height_str = "unspecified";
-        if (height) {
-            if (std::holds_alternative<bool>(*height)) {
+        if (_height) {
+            if (std::holds_alternative<bool>(*_height)) {
                 height_str = "screen-high";
-            } else if (std::holds_alternative<ast::percent_t>(*height)) {
-                const auto height_percent = std::get<ast::percent_t>(*height);
+            } else if (std::holds_alternative<ast::percent_t>(*_height)) {
+                const auto height_percent = std::get<ast::percent_t>(*_height);
                 height_str =
                     std::to_string(
                         static_cast<std::size_t>(height_percent * 100)) +
                     "%";
             } else {
                 height_str =
-                    std::to_string(std::get<ast::pixels_t>(*height)) + "px";
+                    std::to_string(std::get<ast::pixels_t>(*_height)) + "px";
             }
         }
         std::cout << "\theight = " << height_str << "\n";
 
         std::string position_str = "unspecified";
-        if (position) {
-            if (std::holds_alternative<bool>(*position)) {
+        if (_position) {
+            if (std::holds_alternative<bool>(*_position)) {
                 position_str = "centered";
             } else {
-                const auto pos = std::get<ast::point_t>(*position);
+                const auto pos = std::get<ast::point_t>(*_position);
                 if (std::holds_alternative<bool>(pos.first) &&
                     std::holds_alternative<bool>(pos.second)) {
                     position_str = "centered";
@@ -306,15 +353,23 @@ const auto point_def =
 const auto position = x3::rule<struct position, ast::position_t>{"position"};
 const auto position_def = centered | point;
 
-const auto attribute =
-    x3::rule<struct attribute,
-             std::tuple<ast::width_t, ast::height_t, ast::position_t>>{
-        "attribute"};
+const auto fullscreen =
+    x3::rule<struct fullscreen, ast::fullscreen_t>{"fullscreen"};
+const auto fullscreen_def =
+    x3::lit("fullscreen")[([](auto& ctx) { x3::_val(ctx) = true; })];
+
+const auto attribute = x3::rule<
+    struct attribute,
+    std::
+        tuple<ast::width_t, ast::height_t, ast::position_t, ast::fullscreen_t>>{
+    "attribute"};
 
 const auto attribute_def =
     width[([](auto& ctx) { std::get<0>(x3::_val(ctx)) = x3::_attr(ctx); })] |
     height[([](auto& ctx) { std::get<1>(x3::_val(ctx)) = x3::_attr(ctx); })] |
-    position[([](auto& ctx) { std::get<2>(x3::_val(ctx)) = x3::_attr(ctx); })];
+    position[([](auto& ctx) { std::get<2>(x3::_val(ctx)) = x3::_attr(ctx); })] |
+    fullscreen[(
+        [](auto& ctx) { std::get<3>(x3::_val(ctx)) = x3::_attr(ctx); })];
 
 const auto window = x3::rule<struct window_class, window_ast>{"window"};
 
@@ -337,6 +392,11 @@ const auto window_def =
                   x3::_pass(ctx) = false;
               }
           }
+          if (std::get<3>(x3::_attr(ctx))) {
+              if (!x3::_val(ctx).set_fullscreen()) {
+                  x3::_pass(ctx) = false;
+              }
+          }
       })]);
 
 // window parsing rules
@@ -345,6 +405,7 @@ BOOST_SPIRIT_DEFINE(
     centered,
     double_quoted_string,
     full,
+    fullscreen,
     height,
     horizontal,
     line_ending,
@@ -368,7 +429,7 @@ struct window_class {
         Iterator&, Iterator const& last, Exception const& x, Context const&)
     {
         std::cerr << "error! expecting: " << x.which() << " here: \""
-                  << std::string(x.where(), last) << "\"" << std::endl;
+                  << std::string(x.where(), last) << "\"\n";
         return x3::error_handler_result::fail;
     }
 };

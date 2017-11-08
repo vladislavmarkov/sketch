@@ -7,7 +7,7 @@ int
 main(int argc, char** argv)
 {
     if (argc < 2) {
-        std::cerr << "Please, specify file to parse" << std::endl;
+        std::cerr << "Please, specify file to parse\n";
         std::exit(EXIT_FAILURE);
     }
 
