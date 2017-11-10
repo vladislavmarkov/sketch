@@ -1,0 +1,6 @@
+---
+Checks: '-*,cppcoreguidelines-*,boost-*,clang-analyzer-core.*,clang-analyzer-cplusplus.*,clang-analyzer-deadcode.*,clang-analyzer-nullability.*,clang-analyzer-security.*,clang-analyzer-unix.*,misc-*,modernize-*,performance-*,readability-*'
+WarningsAsErrors: ''
+HeaderFilterRegex: ''
+AnalyzeTemporaryDtors: true
+...

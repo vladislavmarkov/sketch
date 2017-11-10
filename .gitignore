@@ -1,6 +1,9 @@
 # cmake build directory
 build/
 
+# sublime project files
+.sublime-project*
+
 # Prerequisites
 *.d
 
@@ -18,10 +21,6 @@ build/
 *.so
 *.dylib
 *.dll
-
-# Fortran module files
-*.mod
-*.smod
 
 # Compiled Static libraries
 *.lai

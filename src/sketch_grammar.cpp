@@ -144,7 +144,7 @@ public:
 
     void
     print() try {
-        std::cout << "window \"" << _title << "\"\n";
+        std::cout << R"(window ")" << _title << "\"\n";
 
         if (_fullscreen) {
             std::cout << "\tfullscreen\n";
@@ -234,9 +234,9 @@ public:
                 }
             }
         }
-        std::cout << "\t" << position_str << "\n";
+        std::cout << '\t' << position_str << '\n';
     } catch (std::exception& e) {
-        std::cerr << __PRETTY_FUNCTION__ << ": " << e.what() << std::endl;
+        std::cerr << "error: " << e.what() << std::endl;
         throw;
     }
 };
@@ -246,7 +246,9 @@ read_file(const std::string& filename)
 {
     std::wifstream file(filename);
     file.imbue(std::locale("en_US.UTF-8"));
-    if (!file) throw std::runtime_error("failed to open file");
+    if (!file) {
+        throw std::runtime_error("failed to open file");
+    }
     return {std::istreambuf_iterator<wchar_t>(file),
             (std::istreambuf_iterator<wchar_t>())};
 }
@@ -426,9 +428,12 @@ struct window_class {
     template <typename Iterator, typename Exception, typename Context>
     x3::error_handler_result
     on_error(
-        Iterator&, Iterator const& last, Exception const& x, Context const&)
+        Iterator& /* first */,
+        Iterator const&  last,
+        Exception const& x,
+        Context const& /* ctx */)
     {
-        std::cerr << "error! expecting: " << x.which() << " here: \""
+        std::cerr << "error! expecting: " << x.which() << R"( here: ")"
                   << std::string(x.where(), last) << "\"\n";
         return x3::error_handler_result::fail;
     }
@@ -446,8 +451,8 @@ create_sketch(const std::string& filename)
         std::cout << "parsed successful" << std::endl;
         win_ast.print();
     } else {
-        std::wcerr << "failed to parse: \"" << std::wstring(first, last) << "\""
-                   << std::endl;
+        std::wcerr << R"(failed to parse: ")" << std::wstring(first, last)
+                   << "\"\n";
     }
 }
 }

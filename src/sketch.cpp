@@ -12,6 +12,5 @@ main(int argc, char** argv)
     }
 
     sk::create_sketch(argv[1]);
-
     return EXIT_SUCCESS;
 }
