@@ -82,10 +82,11 @@ set_target_properties(sketch_static PROPERTIES SOVERSION "${PROJECT_VERSION_MAJO
 target_include_directories(sketch_static
 INTERFACE
 	$<INSTALL_INTERFACE:${INSTALL_INCLUDE_DIR}>
-	$<BUILD_INTERAFACE:${CMAKE_CURRENT_SOURCE_DIR}/public>)
+	$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/public>)
 
 target_link_libraries(sketch_static
 PRIVATE
+	stdc++fs
 	${Boost_LIBRARIES})
 
 add_library(sketch SHARED $<TARGET_OBJECTS:sketch_objs>)
@@ -96,10 +97,11 @@ set_target_properties(sketch PROPERTIES SOVERSION "${PROJECT_VERSION_MAJOR}.${PR
 target_include_directories(sketch
 INTERFACE
 	$<INSTALL_INTERFACE:${INSTALL_INCLUDE_DIR}>
-	$<BUILD_INTERAFACE:${CMAKE_CURRENT_SOURCE_DIR}/public>)
+	$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/public>)
 
 target_link_libraries(sketch
 PUBLIC
+	stdc++fs
 	${Boost_LIBRARIES})
 
 write_basic_package_version_file(
@@ -158,3 +160,16 @@ DESTINATION
 	"${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}-${PROJECT_VERSION}"
 COMPONENT Devel
 )
+
+add_executable(sketch_test
+src/sketch_test.cpp)
+
+set_target_properties(sketch_test PROPERTIES LINKER_LANGUAGE CXX)
+
+target_link_libraries(sketch_test
+PRIVATE
+	sketch)
+
+target_include_directories(sketch_test
+PRIVATE
+	public)

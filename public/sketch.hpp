@@ -2,11 +2,11 @@
 #ifndef SKETCH_MAIN_HEADER_HPP
 #define SKETCH_MAIN_HEADER_HPP
 
-#include <string>
+#include <string_view>
 
 namespace sk {
 
-void load_sketch(const std::string_view& filename);
+void load_sketch(std::string_view filename);
 }
 
 #endif // SKETCH_MAIN_HEADER_HPP
