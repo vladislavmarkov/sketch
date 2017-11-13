@@ -34,11 +34,8 @@ public/sketch/window.hpp)
 set(SKETCH_SOURCES
 src/sketch.cpp)
 
-set(ALL_SOURCE_FILES ${SKETCH_HEADERS} ${SKETCH_SOURCES})
-
-foreach(SOURCE_FILE ${ALL_SOURCE_FILES})
-	set(ALL_ABS_SOURCE_FILES ${ALL_ABS_SOURCE_FILES} ${CMAKE_CURRENT_SOURCE_DIR}/${SOURCE_FILE})
-endforeach()
+set(LIBRARY_SOURCE_FILES ${SKETCH_HEADERS} ${SKETCH_SOURCES})
+set(ALL_SOURCE_FILES ${LIBRARY_SOURCE_FILES} src/sketch_test.cpp)
 
 # setting up a format command
 find_program(CLANG_FORMAT "clang-format")
@@ -46,8 +43,9 @@ if(CLANG_FORMAT)
 	add_custom_target(
 		format
 	COMMAND
-		clang-format -style=file -i ${ALL_ABS_SOURCE_FILES}
-)
+		clang-format -style=file -i ${ALL_SOURCE_FILES}
+	WORKING_DIRECTORY
+		${CMAKE_SOURCE_DIR})
 endif()
 
 # setting up a lint command
@@ -57,13 +55,15 @@ if(CLANG_TIDY)
 		lint
 	COMMAND
 		clang-tidy
-		${ALL_ABS_SOURCE_FILES}
+		${ALL_SOURCE_FILES}
 		--
-		-std=gnu++1z)
+		-std=gnu++1z
+	WORKING_DIRECTORY
+		${CMAKE_SOURCE_DIR})
 endif()
 
 # lib objects
-add_library(sketch_objs OBJECT ${ALL_SOURCE_FILES})
+add_library(sketch_objs OBJECT ${LIBRARY_SOURCE_FILES})
 
 target_include_directories(sketch_objs
 PRIVATE
