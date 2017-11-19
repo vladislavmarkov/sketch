@@ -3,6 +3,7 @@ cmake_minimum_required(VERSION 3.9 FATAL_ERROR)
 project(sketch VERSION 0.0.1 LANGUAGES CXX)
 
 include(CMakePackageConfigHelpers)
+include(FindPkgConfig)
 include(GNUInstallDirs)
 
 set(CMAKE_USE_RELATIVE_PATHS TRUE)
@@ -26,15 +27,23 @@ add_definitions(
 )
 
 find_package(Boost 1.65 REQUIRED system)
+find_package(SDL2 REQUIRED)
+string(STRIP ${SDL2_LIBRARIES} SDL2_LIBRARIES)
+pkg_check_modules(SDL2_TTF SDL2_ttf>=2.0)
 
 set(SKETCH_HEADERS
 public/sketch.hpp
+public/sketch/application.hpp
 public/sketch/window.hpp)
 
 set(SKETCH_SOURCES
 src/annotation.hpp
+src/application.cpp
 src/error_handler.hpp
-src/sketch.cpp)
+src/fps_ctl.cpp
+src/fps_ctl.hpp
+src/sketch.cpp
+src/window.cpp)
 
 set(LIBRARY_SOURCE_FILES ${SKETCH_HEADERS} ${SKETCH_SOURCES})
 set(ALL_SOURCE_FILES ${LIBRARY_SOURCE_FILES} src/sketch_test.cpp)
@@ -71,7 +80,8 @@ target_include_directories(sketch_objs
 PRIVATE
 	public
 	${Boost_INCLUDE_DIRS}
-)
+	${SDL2_INCLUDE_DIRS}
+	${SDL2_TTF_INCLUDE_DIRS})
 
 set_property(TARGET sketch_objs PROPERTY COMPILE_FLAGS "-fPIC")
 
@@ -89,7 +99,9 @@ INTERFACE
 target_link_libraries(sketch_static
 PRIVATE
 	stdc++fs
-	${Boost_LIBRARIES})
+	${Boost_LIBRARIES}
+	${SDL2_LIBRARIES}
+	${SDL2_TTF_LIBRARIES})
 
 add_library(sketch SHARED $<TARGET_OBJECTS:sketch_objs>)
 
@@ -97,6 +109,10 @@ set_target_properties(sketch PROPERTIES VERSION "${PROJECT_VERSION}")
 set_target_properties(sketch PROPERTIES SOVERSION "${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}")
 
 target_include_directories(sketch
+PRIVATE
+	${Boost_INCLUDE_DIRS}
+	${SDL2_INCLUDE_DIRS}
+	${SDL2_TTF_INCLUDE_DIRS}
 INTERFACE
 	$<INSTALL_INTERFACE:${INSTALL_INCLUDE_DIR}>
 	$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/public>)
@@ -104,7 +120,9 @@ INTERFACE
 target_link_libraries(sketch
 PUBLIC
 	stdc++fs
-	${Boost_LIBRARIES})
+	${Boost_LIBRARIES}
+	${SDL2_LIBRARIES}
+	${SDL2_TTF_LIBRARIES})
 
 write_basic_package_version_file(
 	"${INSTALL_VERSION_FILE}"

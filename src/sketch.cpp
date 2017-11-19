@@ -401,7 +401,7 @@ read_file(std::string_view filename)
 }
 }
 
-void
+window_t
 load_sketch(std::string_view filename)
 {
     if (filename.empty()) {
@@ -424,8 +424,10 @@ load_sketch(std::string_view filename)
         first == last) {
         win_ast.print();
     } else {
-        std::wcerr << R"(failed to parse: ")" << std::wstring(first, last)
+        std::wcerr << "failed to parse: \"" << std::wstring(first, last)
                    << "\"\n";
     }
+
+    return {"hello", {0, 0, 200, 200}};
 }
 }
