@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.5.0 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.9 FATAL_ERROR)
 
 project(sketch VERSION 0.0.1 LANGUAGES CXX)
 
@@ -25,13 +25,15 @@ add_definitions(
 -Wshadow
 )
 
-find_package(Boost 1.65 REQUIRED)
+find_package(Boost 1.65 REQUIRED system)
 
 set(SKETCH_HEADERS
 public/sketch.hpp
 public/sketch/window.hpp)
 
 set(SKETCH_SOURCES
+src/annotation.hpp
+src/error_handler.hpp
 src/sketch.cpp)
 
 set(LIBRARY_SOURCE_FILES ${SKETCH_HEADERS} ${SKETCH_SOURCES})
