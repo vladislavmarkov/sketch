@@ -27,13 +27,13 @@ add_definitions(
 )
 
 find_package(Boost 1.65 REQUIRED system)
-find_package(SDL2 REQUIRED)
-string(STRIP ${SDL2_LIBRARIES} SDL2_LIBRARIES)
-pkg_check_modules(SDL2_TTF SDL2_ttf>=2.0)
+pkg_check_modules(SDL2 sdl2>=2.0.5 REQUIRED)
+pkg_check_modules(SDL2_TTF SDL2_ttf>=2.0 REQUIRED)
 
 set(SKETCH_HEADERS
 public/sketch.hpp
 public/sketch/application.hpp
+public/sketch/reactor.hpp
 public/sketch/window.hpp)
 
 set(SKETCH_SOURCES
@@ -42,6 +42,7 @@ src/application.cpp
 src/error_handler.hpp
 src/fps_ctl.cpp
 src/fps_ctl.hpp
+src/reactor.cpp
 src/sketch.cpp
 src/window.cpp)
 

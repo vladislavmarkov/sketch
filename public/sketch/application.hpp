@@ -8,6 +8,7 @@ namespace sk {
 
 class application_t {
     std::vector<window_t> _windows;
+    bool                  _running = {true};
 
 public:
     application_t& operator=(const application_t&) = delete;
@@ -19,7 +20,8 @@ public:
     ~application_t();
 
     void add(window_t&&);
-    int run();
+    int  run();
+    bool is_running() const;
 };
 }
 

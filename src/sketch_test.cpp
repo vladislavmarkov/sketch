@@ -13,6 +13,5 @@ main(int argc, char** argv)
 
     sk::application_t app;
     app.add(sk::load_sketch(argv[1]));
-
-    return EXIT_SUCCESS;
+    return app.run();
 }

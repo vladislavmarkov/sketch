@@ -5,12 +5,12 @@
 namespace sk {
 
 window_t::window_t(
-    const std::string& title,
+    std::string_view title,
     const std::tuple<std::size_t, std::size_t, std::size_t, std::size_t>&
         boundaries)
     : _window(
           SDL_CreateWindow(
-              title.c_str(),
+              title.data(),
               static_cast<int>(std::get<0>(boundaries)), // x
               static_cast<int>(std::get<1>(boundaries)), // y
               static_cast<int>(std::get<2>(boundaries)), // w
@@ -28,4 +28,15 @@ window_t::window_t(
 window_t::~window_t() = default;
 
 window_t::operator SDL_Window*() { return _window.get(); }
+void
+window_t::reactor(reactor_t&& reactor)
+{
+    _reactor = std::move(reactor);
+}
+
+reactor_t&
+window_t::reactor()
+{
+    return _reactor;
+}
 }
