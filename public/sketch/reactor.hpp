@@ -4,6 +4,8 @@
 
 #include <cstdint>
 #include <functional>
+#include <tuple>
+#include <type_traits>
 
 namespace sk {
 
@@ -26,6 +28,40 @@ public:
     void on_quit();
     void on_keydown(std::size_t);
     void on_mouse_move(const std::tuple<std::size_t, std::size_t>&);
+
+    template <typename FuncType>
+    void
+    set_on_draw(FuncType&& draw_func)
+    {
+        static_assert(std::is_invocable_v<FuncType>);
+        _on_draw = std::forward<FuncType>(draw_func);
+    }
+
+    template <typename FuncType>
+    void
+    set_on_quit(FuncType&& quit_func)
+    {
+        static_assert(std::is_invocable_v<FuncType>);
+        _on_quit = std::forward<FuncType>(quit_func);
+    }
+
+    template <typename FuncType>
+    void
+    set_on_keydown(FuncType&& keydown_func)
+    {
+        static_assert(std::is_invocable_v<FuncType, std::size_t>);
+        _on_keydown = std::forward<FuncType>(keydown_func);
+    }
+
+    template <typename FuncType>
+    void
+    set_on_mouse_move(FuncType&& mouse_move_func)
+    {
+        static_assert(
+            std::is_invocable_v<FuncType,
+                                const std::tuple<std::size_t, std::size_t>&>);
+        _on_mouse_move = std::forward<FuncType>(mouse_move_func);
+    }
 };
 }
 
