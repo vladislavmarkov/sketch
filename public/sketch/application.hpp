@@ -6,7 +6,7 @@
 
 namespace sk {
 
-class application_t {
+class application_t final {
     std::vector<window_t> _windows;
     bool                  _running = {true};
 

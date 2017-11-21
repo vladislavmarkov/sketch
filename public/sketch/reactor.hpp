@@ -13,7 +13,7 @@ namespace sk {
 
 class window_t;
 
-class reactor_t {
+class reactor_t final {
     friend class window_t;
 
     std::function<void(gsl::not_null<window_t*>)> _on_draw;

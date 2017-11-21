@@ -43,6 +43,8 @@ src/error_handler.hpp
 src/fps_ctl.cpp
 src/fps_ctl.hpp
 src/reactor.cpp
+src/sdl2_display.cpp
+src/sdl2_display.hpp
 src/sketch.cpp
 src/window.cpp)
 
@@ -165,7 +167,7 @@ COMPONENT
 PATTERN *.hpp
 )
 
-INSTALL(FILES
+install(FILES
 	"${INSTALL_VERSION_FILE}"
 	"${INSTALL_CONFIG_FILE}"
 DESTINATION
@@ -174,7 +176,7 @@ COMPONENT
 	Devel
 )
 
-INSTALL(EXPORT "${PROJECT_NAME}"
+install(EXPORT "${PROJECT_NAME}"
 FILE
 	${PROJECT_NAME}-targets.cmake
 DESTINATION

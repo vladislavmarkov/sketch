@@ -12,10 +12,13 @@
 #include <boost/spirit/home/x3/support/ast/position_tagged.hpp>
 #include <boost/spirit/home/x3/support/utility/error_reporting.hpp>
 
+#include <SDL.h>
+
 #include <sketch/window.hpp>
 
 #include "annotation.hpp"
 #include "error_handler.hpp"
+#include "sdl2_display.hpp"
 
 namespace sk {
 
@@ -30,12 +33,49 @@ using pixels_t     = std::size_t;         // self-explanatory
 using fullscreen_t = std::optional<bool>; // if true, then window is
                                           // fullscreened
 
-/* window width type can be unspecified or specified to be screen-wide, or
+template <typename ReturnType, typename AstType>
+ReturnType
+ast_pos_to_real(const AstType& ast_value, ReturnType max)
+{
+    if (!ast_value) {
+        return static_cast<ReturnType>(SDL_WINDOWPOS_UNDEFINED);
+    }
+
+    if (std::holds_alternative<bool>(*ast_value)) {
+        return static_cast<ReturnType>(SDL_WINDOWPOS_CENTERED);
+    } else if (std::holds_alternative<percent_t>(*ast_value)) {
+        const auto percent = std::get<percent_t>(*ast_value);
+        return std::min(
+            static_cast<ReturnType>(percent * static_cast<percent_t>(max)),
+            max);
+    }
+
+    return std::get<pixels_t>(*ast_value);
+}
+
+template <typename ReturnType, typename AstType>
+ReturnType
+ast_size_to_real(const AstType& ast_value, ReturnType max)
+{
+    assert(ast_value);
+    if (std::holds_alternative<bool>(*ast_value)) {
+        return max;
+    } else if (std::holds_alternative<percent_t>(*ast_value)) {
+        const auto percent = std::get<percent_t>(*ast_value);
+        return std::min(
+            static_cast<ReturnType>(percent * static_cast<percent_t>(max)),
+            max);
+    }
+
+    return std::get<pixels_t>(*ast_value);
+}
+
+/* window width type can be undefined or specified to be screen-wide, or
  * specified in percent or specified in pixels
  */
 using width_t = std::optional<std::variant<bool, percent_t, pixels_t>>;
 
-/* window height type can be unspecified or specified to be screen-high, or
+/* window height type can be undefined or specified to be screen-high, or
  * specified in percent or specified in pixels
  */
 using height_t = std::optional<std::variant<bool, percent_t, pixels_t>>;
@@ -43,12 +83,12 @@ using height_t = std::optional<std::variant<bool, percent_t, pixels_t>>;
 /* horizontal window coordinates can be represented by pixels or by percents of
  * screen, or window can be simply centered horizontally
  */
-using horizontal_t = std::variant<bool, percent_t, pixels_t>;
+using horizontal_t = std::optional<std::variant<bool, percent_t, pixels_t>>;
 
 /* vertical window coordinates can be represented by pixels or by percents of
  * screen, or window can be simply centered vertically
  */
-using vertical_t = std::variant<bool, percent_t, pixels_t>;
+using vertical_t = std::optional<std::variant<bool, percent_t, pixels_t>>;
 
 // point for window is represented by a pair of window coordinates
 using point_t = std::pair<horizontal_t, vertical_t>;
@@ -77,6 +117,12 @@ public:
         return true;
     }
 
+    std::string
+    get_title() const
+    {
+        return _title;
+    }
+
     template <typename Width>
     bool
     set_width(const Width& p)
@@ -93,6 +139,12 @@ public:
 
         _width = p;
         return true;
+    }
+
+    width_t
+    get_width() const
+    {
+        return _width;
     }
 
     template <typename Height>
@@ -113,10 +165,17 @@ public:
         return true;
     }
 
+    height_t
+    get_height() const
+    {
+        return _height;
+    }
+
     template <typename Position>
     bool
     set_position(const Position& p)
     {
+        assert(p);
         if (_position) {
             std::cerr << "position is already set\n";
             return false;
@@ -128,8 +187,57 @@ public:
             return false;
         }
 
+        const auto centered = std::holds_alternative<bool>(*p);
+        const auto screen_wide =
+            _width && std::holds_alternative<bool>(*_width);
+        if (centered && screen_wide) {
+            std::cerr << "you can't set window position to centered since "
+                         "window is screen-wide\n";
+            return false;
+        }
+
+        const auto screen_high =
+            _height && std::holds_alternative<bool>(*_height);
+        if (centered && screen_high) {
+            std::cerr << "you can't set window position to centered since "
+                         "window is screen-high\n";
+            return false;
+        }
+
+        const auto h_pos = std::holds_alternative<point_t>(*p);
+        if (h_pos && screen_wide) {
+            std::cerr
+                << "you can't set window horizontal position since window is "
+                   "screen-wide\n";
+            return false;
+        }
+
+        const auto v_pos = std::holds_alternative<point_t>(*p);
+        if (v_pos && screen_high) {
+            std::cerr
+                << "you can't set window vertical position since window is "
+                   "screen-high\n";
+            return false;
+        }
+
         _position = p;
         return true;
+    }
+
+    std::tuple<horizontal_t, vertical_t>
+    get_position() const
+    {
+        auto pos_x = horizontal_t();
+        auto pos_y = vertical_t();
+        if (_position) {
+            if (std::holds_alternative<bool>(*_position)) {
+                pos_x = pos_y = true; // centered
+            } else {
+                return std::get<point_t>(*_position);
+            }
+        }
+
+        return std::tuple{pos_x, pos_y};
     }
 
     bool
@@ -159,7 +267,7 @@ public:
             return;
         }
 
-        std::string width_str = "unspecified";
+        std::string width_str = "undefined";
         if (_width) {
             if (std::holds_alternative<bool>(*_width)) {
                 width_str = "screen-wide";
@@ -174,7 +282,7 @@ public:
         }
         std::cout << "\twidth = " << width_str << "\n";
 
-        std::string height_str = "unspecified";
+        std::string height_str = "undefined";
         if (_height) {
             if (std::holds_alternative<bool>(*_height)) {
                 height_str = "screen-high";
@@ -192,46 +300,58 @@ public:
         }
         std::cout << "\theight = " << height_str << "\n";
 
-        std::string position_str = "unspecified";
+        std::string position_str = "undefined";
         if (_position) {
             if (std::holds_alternative<bool>(*_position)) {
                 position_str = "centered";
             } else {
                 const auto pos = std::get<point_t>(*_position);
-                if (std::holds_alternative<bool>(pos.first) &&
-                    std::holds_alternative<bool>(pos.second)) {
+                if (pos.first && std::holds_alternative<bool>(*pos.first) &&
+                    pos.second && std::holds_alternative<bool>(*pos.second)) {
                     position_str = "centered";
                 } else {
                     position_str = "position = { ";
-                    if (std::holds_alternative<bool>(pos.first)) {
-                        position_str += "h-centered";
-                    } else if (std::holds_alternative<percent_t>(pos.first)) {
-                        const auto h_percent = std::get<percent_t>(pos.first);
-                        position_str +=
-                            std::to_string(
-                                static_cast<std::size_t>(h_percent * 100)) +
-                            "%";
+                    if (pos.first) {
+                        if (std::holds_alternative<bool>(*pos.first)) {
+                            position_str += "h-centered";
+                        } else if (
+                            std::holds_alternative<percent_t>(*pos.first)) {
+                            const auto h_percent =
+                                std::get<percent_t>(*pos.first);
+                            position_str +=
+                                std::to_string(
+                                    static_cast<std::size_t>(h_percent * 100)) +
+                                "%";
+                        } else {
+                            position_str +=
+                                std::to_string(std::get<pixels_t>(*pos.first)) +
+                                "px";
+                        }
                     } else {
-                        position_str +=
-                            std::to_string(std::get<pixels_t>(pos.first)) +
-                            "p"
-                            "x";
+                        position_str += "undefined";
                     }
 
                     position_str += ", ";
 
-                    if (std::holds_alternative<bool>(pos.second)) {
-                        position_str += "v-centered }";
-                    } else if (std::holds_alternative<percent_t>(pos.second)) {
-                        const auto v_percent = std::get<percent_t>(pos.second);
-                        position_str +=
-                            std::to_string(
-                                static_cast<std::size_t>(v_percent * 100)) +
-                            "%";
+                    if (pos.second) {
+                        if (std::holds_alternative<bool>(*pos.second)) {
+                            position_str += "v-centered }";
+                        } else if (
+                            std::holds_alternative<percent_t>(*pos.second)) {
+                            const auto v_percent =
+                                std::get<percent_t>(*pos.second);
+                            position_str +=
+                                std::to_string(
+                                    static_cast<std::size_t>(v_percent * 100)) +
+                                "%";
+                        } else {
+                            position_str +=
+                                std::to_string(
+                                    std::get<pixels_t>(*pos.second)) +
+                                "px";
+                        }
                     } else {
-                        position_str +=
-                            std::to_string(std::get<pixels_t>(pos.second)) +
-                            "px";
+                        position_str += "undefined";
                     }
 
                     position_str += " }";
@@ -424,10 +544,22 @@ load_sketch(std::string_view filename)
         first == last) {
         win_ast.print();
     } else {
-        std::wcerr << "failed to parse: \"" << std::wstring(first, last)
-                   << "\"\n";
+        throw std::runtime_error("parsing error");
     }
 
-    return {"hello", {0, 0, 200, 200}};
+    const auto[x, y, w, h] = impl::sdl2::display::get_bounds();
+    const auto[pos_x, pos_y] = win_ast.get_position();
+    const auto win_x =
+                   (static_cast<std::size_t>(x) +
+                    ast_pos_to_real<std::size_t, horizontal_t>(pos_x, w)),
+               win_y =
+                   (static_cast<std::size_t>(y) +
+                    ast_pos_to_real<std::size_t, vertical_t>(pos_y, h)),
+               win_w = ast_size_to_real<std::size_t, width_t>(
+                   win_ast.get_width(), w),
+               win_h = ast_size_to_real<std::size_t, height_t>(
+                   win_ast.get_height(), h);
+
+    return {win_ast.get_title(), {win_x, win_y, win_w, win_h}};
 }
 }

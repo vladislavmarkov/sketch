@@ -17,9 +17,7 @@ window_t::window_t(
               static_cast<int>(std::get<1>(boundaries)), // y
               static_cast<int>(std::get<2>(boundaries)), // w
               static_cast<int>(std::get<3>(boundaries)), // h
-              SDL_WINDOW_BORDERLESS | SDL_WINDOW_FULLSCREEN_DESKTOP |
-                  SDL_WINDOW_INPUT_FOCUS | SDL_WINDOW_INPUT_GRABBED |
-                  SDL_WINDOW_MOUSE_FOCUS | SDL_WINDOW_SHOWN),
+              SDL_WINDOW_SHOWN),
           [](SDL_Window* ptr) { SDL_DestroyWindow(ptr); })
 {
     if (!_window) {

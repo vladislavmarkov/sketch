@@ -15,7 +15,7 @@ namespace sk {
 
 class application_t;
 
-class window_t {
+class window_t final {
     friend class application_t;
 
     std::unique_ptr<SDL_Window, std::function<void(SDL_Window*)>> _window;
