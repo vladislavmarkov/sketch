@@ -21,6 +21,7 @@ public:
 
     void add(window_t&&);
     int  run();
+    void quit();
     bool is_running() const;
 };
 }

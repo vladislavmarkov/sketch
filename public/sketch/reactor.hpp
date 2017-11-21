@@ -7,14 +7,23 @@
 #include <tuple>
 #include <type_traits>
 
+#include <gsl/gsl>
+
 namespace sk {
 
+class window_t;
+
 class reactor_t {
-    std::function<void()>            _on_draw;
-    std::function<void()>            _on_quit;
-    std::function<void(std::size_t)> _on_keydown;
-    std::function<void(const std::tuple<std::size_t, std::size_t>&)>
+    friend class window_t;
+
+    std::function<void(gsl::not_null<window_t*>)> _on_draw;
+    std::function<void(gsl::not_null<window_t*>)> _on_quit;
+    std::function<void(gsl::not_null<window_t*>, std::size_t)> _on_keydown;
+    std::function<void(
+        gsl::not_null<window_t*>, const std::tuple<std::size_t, std::size_t>&)>
         _on_mouse_move;
+
+    window_t* _window = {nullptr};
 
 public:
     reactor_t& operator=(const reactor_t&) = delete;
@@ -33,7 +42,7 @@ public:
     void
     set_on_draw(FuncType&& draw_func)
     {
-        static_assert(std::is_invocable_v<FuncType>);
+        static_assert(std::is_invocable_v<FuncType, gsl::not_null<window_t*>>);
         _on_draw = std::forward<FuncType>(draw_func);
     }
 
@@ -41,7 +50,7 @@ public:
     void
     set_on_quit(FuncType&& quit_func)
     {
-        static_assert(std::is_invocable_v<FuncType>);
+        static_assert(std::is_invocable_v<FuncType, gsl::not_null<window_t*>>);
         _on_quit = std::forward<FuncType>(quit_func);
     }
 
@@ -49,7 +58,10 @@ public:
     void
     set_on_keydown(FuncType&& keydown_func)
     {
-        static_assert(std::is_invocable_v<FuncType, std::size_t>);
+        static_assert(
+            std::is_invocable_v<FuncType,
+                                gsl::not_null<window_t*>,
+                                std::size_t>);
         _on_keydown = std::forward<FuncType>(keydown_func);
     }
 
@@ -59,6 +71,7 @@ public:
     {
         static_assert(
             std::is_invocable_v<FuncType,
+                                gsl::not_null<window_t*>,
                                 const std::tuple<std::size_t, std::size_t>&>);
         _on_mouse_move = std::forward<FuncType>(mouse_move_func);
     }

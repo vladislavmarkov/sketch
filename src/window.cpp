@@ -2,6 +2,8 @@
 
 #include <SDL.h>
 
+#include <sketch/application.hpp>
+
 namespace sk {
 
 window_t::window_t(
@@ -23,6 +25,8 @@ window_t::window_t(
     if (!_window) {
         throw std::runtime_error(SDL_GetError());
     }
+
+    _reactor._window = this;
 }
 
 window_t::~window_t() = default;
@@ -38,5 +42,12 @@ reactor_t&
 window_t::reactor()
 {
     return _reactor;
+}
+
+void
+window_t::quit()
+{
+    assert(_app);
+    _app->quit();
 }
 }

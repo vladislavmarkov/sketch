@@ -13,10 +13,15 @@ struct SDL_Window;
 
 namespace sk {
 
+class application_t;
+
 class window_t {
+    friend class application_t;
+
     std::unique_ptr<SDL_Window, std::function<void(SDL_Window*)>> _window;
 
-    reactor_t _reactor;
+    reactor_t      _reactor;
+    application_t* _app = {nullptr};
 
 public:
     window_t& operator=(const window_t&) = delete;
@@ -34,6 +39,7 @@ public:
 
     reactor_t& reactor();
     void       reactor(reactor_t&&);
+    void       quit();
 };
 }
 

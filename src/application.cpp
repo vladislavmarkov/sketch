@@ -40,6 +40,7 @@ application_t::~application_t() { SDL_Quit(); }
 void
 application_t::add(window_t&& window)
 {
+    window._app = this;
     _windows.emplace_back(std::move(window));
 }
 
@@ -59,6 +60,12 @@ application_t::run()
     }
 
     return EXIT_SUCCESS;
+}
+
+void
+application_t::quit()
+{
+    _running = false;
 }
 
 bool
